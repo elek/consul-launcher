@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"syscall"
 	"fmt"
+	"strings"
 )
 
 func read_consul(dest, consul_path string, command []string) {
@@ -61,7 +62,7 @@ func start_process(command[] string, supervisor chan bool) {
 			cmd = exec.Command(command[0])
 		}
 		cmd.Stdout = os.Stdout
-		println("Starting process")
+		println("Starting process: " + strings.Join(command, " "))
 		err := cmd.Start()
 		go kerub(supervisor, cmd.Process)
 		err = cmd.Wait()
@@ -70,12 +71,12 @@ func start_process(command[] string, supervisor chan bool) {
 				waitStatus := exitError.Sys().(syscall.WaitStatus)
 				println([]byte(fmt.Sprintf("Exit code: %d", waitStatus.ExitStatus())))
 			} else {
-				println("Other error " + err.Error())
+				println("Other error: " + err.Error())
 			}
+		} else {
+			retry = !cmd.ProcessState.Success()
+			println("Process has been stopped with exit code: " + strconv.Itoa(int(cmd.ProcessState.Sys().(syscall.WaitStatus))))
 		}
-		retry = !cmd.ProcessState.Success()
-
-		println("Process has been stopped with exit code: " + strconv.Itoa(int(cmd.ProcessState.Sys().(syscall.WaitStatus))))
 		time.Sleep(5 * time.Second)
 	}
 	os.Exit(0)
@@ -101,18 +102,20 @@ func main() {
 	var arguments []string
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
-		if arg == "--desination" {
+		if arg == "--destination" {
 			i++
 			dest = os.Args[i]
 		} else if arg == "--path" {
 			i++
-			dest = os.Args[i]
+			path = os.Args[i]
 		} else {
 			arguments = os.Args[i:]
 			break;
 		}
 	}
-
+	if len(arguments) == 0 {
+		panic("Usage: consul-launcher [--destination dir] [--path consul_path] any_command --with-args")
+	}
 	read_consul(dest, path, arguments)
 
 }
