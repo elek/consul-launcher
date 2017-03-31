@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func read_consul(dest, consul_path string, command []string) {
+func readConsul(dest, consul_path string, command []string) {
 
 	client, err := api.NewClient(api.DefaultConfig())
 	if err != nil {
@@ -31,12 +31,12 @@ func read_consul(dest, consul_path string, command []string) {
 		}
 		for _, kv := range pairs {
 			if kv.ModifyIndex > options.WaitIndex {
-				relative_path := kv.Key[len(consul_path):]
-				save_file(dest, relative_path, kv.Value)
+				relativePath := kv.Key[len(consul_path):]
+				saveFile(dest, relativePath, kv.Value)
 			}
 		}
 		if (options.WaitIndex == 0) {
-			go start_process(command, supervisor)
+			go startProcess(command, supervisor)
 		} else {
 			supervisor <- true
 		}
@@ -52,7 +52,7 @@ func kerub(supervisor chan bool, process *os.Process) {
 	}
 
 }
-func start_process(command[] string, supervisor chan bool) {
+func startProcess(command[] string, supervisor chan bool) {
 	retry := true
 	for retry {
 		var cmd *exec.Cmd
@@ -82,7 +82,7 @@ func start_process(command[] string, supervisor chan bool) {
 	os.Exit(0)
 }
 
-func save_file(directory string, relative_path string, bytes []byte) {
+func saveFile(directory string, relative_path string, bytes []byte) {
 	dest_file := path.Join(directory, relative_path)
 	dest_dir := path.Dir(dest_file)
 	err := os.MkdirAll(dest_dir, 0777)
@@ -116,6 +116,6 @@ func main() {
 	if len(arguments) == 0 {
 		panic("Usage: consul-launcher [--destination dir] [--path consul_path] any_command --with-args")
 	}
-	read_consul(dest, path, arguments)
+	readConsul(dest, path, arguments)
 
 }
