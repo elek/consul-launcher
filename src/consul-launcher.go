@@ -13,6 +13,21 @@ import (
 	"strings"
 )
 
+type postIteration func([]Entry, string)
+
+type Plugin struct {
+	PostIteration postIteration
+}
+
+var plugins = []Plugin{
+	executorPlugin,
+}
+
+type Entry struct {
+	RelativePath   string
+	ConsulKeyValue api.KVPair
+}
+
 func ReadConsul(dest, consul_path string, command []string) {
 
 	client, err := api.NewClient(api.DefaultConfig())
@@ -29,12 +44,19 @@ func ReadConsul(dest, consul_path string, command []string) {
 		if error != nil {
 			panic(error)
 		}
+		var changedPairs []Entry
 		for _, kv := range pairs {
 			if kv.ModifyIndex > options.WaitIndex {
 				relativePath := kv.Key[len(consul_path):]
 				saveFile(dest, relativePath, kv.Value)
+				changedPairs = append(changedPairs, Entry{relativePath, *kv})
 			}
 		}
+
+		for _, plugin := range plugins {
+			plugin.PostIteration(changedPairs, dest)
+		}
+
 		if (options.WaitIndex == 0) {
 			go startProcess(command, supervisor)
 		} else {
@@ -47,7 +69,7 @@ func ReadConsul(dest, consul_path string, command []string) {
 func kerub(supervisor chan bool, process *os.Process) {
 	signal := <-supervisor
 	if (signal) {
-		println("Killing process " + strconv.Itoa(process.Pid) + " ")
+		fmt.Println("Killing process " + strconv.Itoa(process.Pid) + " ")
 		process.Kill()
 	}
 
@@ -61,21 +83,22 @@ func startProcess(command[] string, supervisor chan bool) {
 		} else {
 			cmd = exec.Command(command[0])
 		}
+		os.Stdout.Sync()
 		cmd.Stdout = os.Stdout
-		println("Starting process: " + strings.Join(command, " "))
+		fmt.Println("Starting process: " + strings.Join(command, " "))
 		err := cmd.Start()
 		go kerub(supervisor, cmd.Process)
 		err = cmd.Wait()
 		if (err != nil) {
 			if exitError, ok := err.(*exec.ExitError); ok {
 				waitStatus := exitError.Sys().(syscall.WaitStatus)
-				println([]byte(fmt.Sprintf("Exit code: %d", waitStatus.ExitStatus())))
+				fmt.Println([]byte(fmt.Sprintf("Exit code: %d", waitStatus.ExitStatus())))
 			} else {
-				println("Other error: " + err.Error())
+				fmt.Println("Other error: " + err.Error())
 			}
 		} else {
 			retry = !cmd.ProcessState.Success()
-			println("Process has been stopped with exit code: " + strconv.Itoa(int(cmd.ProcessState.Sys().(syscall.WaitStatus))))
+			fmt.Println("Process has been stopped with exit code: " + strconv.Itoa(int(cmd.ProcessState.Sys().(syscall.WaitStatus))))
 		}
 		time.Sleep(5 * time.Second)
 	}
@@ -93,6 +116,6 @@ func saveFile(directory string, relative_path string, bytes []byte) {
 	if err != nil {
 		panic(err)
 	}
-	println(dest_file + " file is written")
+	fmt.Println(dest_file + " file is written")
 }
 
