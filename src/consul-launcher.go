@@ -13,14 +13,16 @@ import (
 	"strings"
 )
 
-type postIteration func([]Entry, string)
 
 type Plugin struct {
-	PostIteration postIteration
+	CheckActivation func(uint64) bool
+	PostIteration   func([]Entry, string)
+	ProcessContent  func([]byte) []byte
 }
 
 var plugins = []Plugin{
 	executorPlugin,
+	templatePlugin,
 }
 
 type Entry struct {
@@ -48,7 +50,14 @@ func ReadConsul(dest, consul_path string, command []string) {
 		for _, kv := range pairs {
 			if kv.ModifyIndex > options.WaitIndex {
 				relativePath := kv.Key[len(consul_path):]
-				saveFile(dest, relativePath, kv.Value)
+				content := kv.Value
+
+				for _, plugin := range plugins {
+					if plugin.CheckActivation(kv.Flags) {
+						content = plugin.ProcessContent(content)
+					}
+				}
+				saveFile(dest, relativePath, content)
 				changedPairs = append(changedPairs, Entry{relativePath, *kv})
 			}
 		}
