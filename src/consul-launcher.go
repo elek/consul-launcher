@@ -1,4 +1,4 @@
-package main
+package consullauncher
 
 import (
 	"github.com/hashicorp/consul/api"
@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func readConsul(dest, consul_path string, command []string) {
+func ReadConsul(dest, consul_path string, command []string) {
 
 	client, err := api.NewClient(api.DefaultConfig())
 	if err != nil {
@@ -96,26 +96,3 @@ func saveFile(directory string, relative_path string, bytes []byte) {
 	println(dest_file + " file is written")
 }
 
-func main() {
-	dest := "/tmp"
-	path := "conf"
-	var arguments []string
-	for i := 1; i < len(os.Args); i++ {
-		arg := os.Args[i]
-		if arg == "--destination" {
-			i++
-			dest = os.Args[i]
-		} else if arg == "--path" {
-			i++
-			path = os.Args[i]
-		} else {
-			arguments = os.Args[i:]
-			break;
-		}
-	}
-	if len(arguments) == 0 {
-		panic("Usage: consul-launcher [--destination dir] [--path consul_path] any_command --with-args")
-	}
-	readConsul(dest, path, arguments)
-
-}
