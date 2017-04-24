@@ -5,6 +5,8 @@ import (
 	"os"
 	"path"
 	"fmt"
+	"github.com/hashicorp/consul/api"
+
 )
 
 var executorPlugin = Plugin{
@@ -28,7 +30,7 @@ var executorPlugin = Plugin{
 			}
 		}
 	},
-	ProcessContent:func(content []byte) []byte {
+	ProcessContent:func(content []byte, consul *api.Client) []byte {
 		return content
 	},
 	CheckActivation:func(flag uint64) bool {

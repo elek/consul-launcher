@@ -17,7 +17,7 @@ import (
 type Plugin struct {
 	CheckActivation func(uint64) bool
 	PostIteration   func([]Entry, string)
-	ProcessContent  func([]byte) []byte
+	ProcessContent  func([]byte, *api.Client) []byte
 }
 
 var plugins = []Plugin{
@@ -54,7 +54,7 @@ func ReadConsul(dest, consul_path string, command []string) {
 
 				for _, plugin := range plugins {
 					if plugin.CheckActivation(kv.Flags) {
-						content = plugin.ProcessContent(content)
+						content = plugin.ProcessContent(content, client)
 					}
 				}
 				saveFile(dest, relativePath, content)
