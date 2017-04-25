@@ -68,7 +68,7 @@ func ReadConsul(dest, consul_path string, command []string) {
 
 		if (options.WaitIndex == 0) {
 			go startProcess(command, supervisor)
-		} else {
+		} else if len(changedPairs) > 0{
 			supervisor <- true
 		}
 		options.WaitIndex = meta.LastIndex
