@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"bytes"
 	"github.com/hashicorp/consul/api"
+	"strconv"
 )
 
 func templatePostIteration(configFiles []Entry, dest string) {
@@ -26,6 +27,30 @@ var templatePlugin = Plugin{
 			} else {
 				return entry, nil
 			}
+		}
+		funcMap["hosts"] = func(separator string, services []*api.CatalogService) string {
+			result := ""
+			for ix, service := range services {
+				if (ix > 0 && len(separator) > 0) {
+					result += separator
+				}
+				result += service.Address
+
+			}
+			return result
+
+		}
+		funcMap["hostPorts"] = func(separator string, services []*api.CatalogService) string {
+			result := ""
+			for ix, service := range services {
+				if (ix > 0 && len(separator) > 0) {
+					result += separator
+				}
+				result += (service.Address + ":" + strconv.Itoa(service.ServicePort))
+
+			}
+			return result
+
 		}
 		template, err := template.New("template").Funcs(funcMap).Parse(string(content))
 		if (err != nil) {
