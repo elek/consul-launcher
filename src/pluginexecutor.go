@@ -30,7 +30,7 @@ var executorPlugin = Plugin{
 			}
 		}
 	},
-	ProcessContent:func(content []byte, consul *api.Client) []byte {
+	ProcessContent:func(content []byte, consul *api.Client, supervisor chan bool) []byte {
 		return content
 	},
 	CheckActivation:func(flag uint64) bool {
